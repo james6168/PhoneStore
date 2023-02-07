@@ -102,6 +102,29 @@ class ResetPasswordAPIView(View):
                                  status=HTTPStatus.BAD_REQUEST)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteUserAPIView(View):
+    def delete(self, request, user_id):
+        request_data = json.loads(request.body)
+        request_token = request_data.get("token")
+        try:
+            user = User.objects.get(id=user_id)
+            user_token = user.token
+            if request_token != user_token:
+                return JsonResponse({"status": "error",
+                                     "message": "Invalid token was provided"},
+                                    status=HTTPStatus.BAD_REQUEST)
+            user.delete()
+            return JsonResponse({
+                "status": "success",
+                "message": "Profile was successfully deleted"
+            })
+        except ObjectDoesNotExist as error:
+            return JsonResponse({"status": "error",
+                                 "message": f"{error}"},
+                                status=HTTPStatus.BAD_REQUEST)
+
+
 
 
 
