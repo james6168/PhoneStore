@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
 from django.core.serializers import serialize
+from django.core.exceptions import ValidationError
 from http import HTTPStatus
 import re
 from django.contrib.auth import authenticate
@@ -48,20 +49,22 @@ class RegisterAPIView(View):
         password2 = request_data.get("password2")
 
         if re.fullmatch(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b", email):
-            if validate_password(password1) is not None:
-                if password1 == password2:
-                    user = User.objects.create(**request_data)
-                    user.save()
-                    return JsonResponse({"status": "success",
-                                         "email": email},
-                                        status=HTTPStatus.CREATED)
+            try:
+                if validate_password(password1) is None:
+                    if password1 == password2:
+
+                        user = User.objects.create(**{"email": email, "password": password1})
+                        user.save()
+                        return JsonResponse({"status": "success",
+                                             "email": email},
+                                            status=HTTPStatus.CREATED)
+                    return JsonResponse({"status": "error",
+                                         "error_message": "Passwords mismatch"},
+                                          status=HTTPStatus.BAD_REQUEST)
+            except ValidationError as error:
                 return JsonResponse({"status": "error",
-                                     "error_message": "Passwords mismatch"},
+                                     "error_message": "".join(error)},
                                     status=HTTPStatus.BAD_REQUEST)
-            return JsonResponse({"status": "error",
-                                 "error_message": "Password should have at least 8 symbols, numeric symbols, upper- "
-                                                  "and lowercase symbols"},
-                                status=HTTPStatus.BAD_REQUEST)
 
 
 
