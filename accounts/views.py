@@ -5,10 +5,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
 from django.core.serializers import serialize
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from http import HTTPStatus
 import re
-from django.contrib.auth import authenticate
 import json
 # Create your views here.
 
@@ -65,6 +64,48 @@ class RegisterAPIView(View):
                 return JsonResponse({"status": "error",
                                      "error_message": "".join(error)},
                                     status=HTTPStatus.BAD_REQUEST)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ResetPasswordAPIView(View):
+
+    def put(self, request, user_id):
+        request_data = json.loads(request.body)
+        request_token = request_data.get("token")
+        new_password1 = request_data.get("new_password1")
+        new_password2 = request_data.get("new_password2")
+        try:
+            user = User.objects.get(id=user_id)
+            user_token = user.token
+            if request_token != user_token:
+                return JsonResponse({"status": "error",
+                                     "message": "Invalid token was provided"},
+                                    status=HTTPStatus.BAD_REQUEST)
+            try:
+                if validate_password(new_password1) is None:
+                    if new_password1 == new_password2:
+                        user.password = new_password1
+                        user.save()
+                        return JsonResponse({"status": "succes",
+                                             "message": "Password was successfully changed"},
+                                            status=HTTPStatus.OK)
+                    return JsonResponse({"status": "error",
+                                         "message": "Passwords are not equal to each other"},
+                                        status=HTTPStatus.BAD_REQUEST)
+            except ValidationError as error:
+                return JsonResponse({"status": "error",
+                                     "message": "".join(error)},
+                                    status=HTTPStatus.BAD_REQUEST)
+        except ObjectDoesNotExist as error:
+            return JsonResponse({"status": "error",
+                                 "message": f"{error}"},
+                                 status=HTTPStatus.BAD_REQUEST)
+
+
+
+
+
+
 
 
 
