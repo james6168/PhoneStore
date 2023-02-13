@@ -7,8 +7,12 @@ class SmartphoneImage(models.Model):
     file_name = models.CharField(max_length=50)
     image = models.ImageField(upload_to="smartphones")
 
+    def __str__(self):
+        return self.file_name
+
 
 class Smartphone(models.Model):
+    name = models.CharField(max_length=50, null=True)
     back_camera_mp = models.PositiveSmallIntegerField()
     wide_camera_mp = models.PositiveSmallIntegerField()
     front_camera_mp = models.PositiveSmallIntegerField()
@@ -32,8 +36,14 @@ class Smartphone(models.Model):
     description = models.TextField()
     images = models.ManyToManyField(SmartphoneImage, blank=True)
 
+    def __str__(self):
+        return self.name
+
 
 class Brand(models.Model):
     name = models.CharField(max_length=100)
     smartphones = models.ManyToManyField(Smartphone, blank=True)
+
+    def __str__(self):
+        return self.name
 
